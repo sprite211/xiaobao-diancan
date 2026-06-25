@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍽️ 小宝专属点餐</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #ffeef2;
+            color: #333;
+            padding-bottom: 120px;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ffa502);
+            color: white;
+            padding: 25px 20px 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .header .sub {
+            font-size: 14px;
+            font-weight: normal;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .search-bar {
+            position: sticky;
+            top: 88px;
+            z-index: 9;
+            background: rgba(255,255,255,0.95);
+            padding: 8px 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #ffcccc;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+            background: #fff5f5;
+        }
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            background: rgba(255,255,255,0.95);
+            padding: 10px 5px;
+            gap: 8px;
+            position: sticky;
+            top: 140px;
+            z-index: 9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .tab {
+            flex: 0 0 auto;
+            padding: 8px 18px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+        .tab.active { background: #ff6b6b; color: white; font-weight: bold; }
+        .menu-grid {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 15px;
+            gap: 12px;
+            justify-content: center;
+        }
+        .dish-card {
+            width: calc(50% - 10px);
+            min-width: 160px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .dish-card:active { transform: scale(0.97); }
+        .dish-img {
+            width: 100%;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            background: linear-gradient(145deg, #fff5e6, #ffe0cc);
+        }
+        .dish-info {
+            padding: 10px 12px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .dish-name { font-weight: bold; font-size: 16px; margin-bottom: 4px; }
+        .dish-desc { font-size: 12px; color: #888; margin-bottom: 10px; }
+        .dish-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+        .dish-price { color: #ff6348; font-weight: bold; font-size: 18px; }
+        .add-btn {
+            background: #ff6b6b; color: white; border: none;
+            width: 32px; height: 32px; border-radius: 50%;
+            font-size: 20px; line-height: 1; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(255,107,107,0.4);
+            transition: 0.2s;
+        }
+        .add-btn:active { background: #e55a5a; }
+        .cart-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 100;
+        }
+        .cart-info { display: flex; align-items: center; gap: 10px; }
+        .cart-icon {
+            font-size: 30px; background: #ff6b6b; color: white;
+            width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .cart-badge {
+            position: absolute; top: -5px; right: -5px;
+            background: #ffa502; color: white; font-size: 12px;
+            width: 20px; height: 20px; border-radius: 50%;
+            text-align: center; line-height: 20px;
+        }
+        .total-price { color: #ff6348; font-weight: bold; font-size: 20px; }
+        .order-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white; border: none; padding: 12px 28px;
+            border-radius: 30px; font-size: 16px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(255,71,87,0.4);
+        }
+        .cart-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); display: none;
+            justify-content: center; align-items: flex-end; z-index: 200;
+        }
+        .cart-modal.active { display: flex; }
+        .cart-content {
+            background: white; width: 100%; max-width: 500px;
+            border-radius: 24px 24px 0 0; padding: 20px;
+            max-height: 70vh; overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .cart-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid #eee;
+        }
+        .qty-control { display: flex; align-items: center; gap: 10px; }
+        .qty-btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 1px solid #ccc; background: white;
+            font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .close-cart {
+            background: none; border: none; font-size: 28px;
+            position: absolute; right: 20px; top: 15px; cursor: pointer;
+        }
+        .empty-cart { text-align: center; color: #aaa; padding: 40px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        🍽️ 小宝专属点餐
+        <div class="sub">想吃什么，我马上给你做 ❤️</div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="🔍 搜搜想吃的菜...">
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="menu-grid" id="menuGrid"></div>
+
+    <div class="cart-bar">
+        <div class="cart-info" id="cartIcon">
+            <div class="cart-icon">
+                🛒
+                <span class="cart-badge" id="cartCount">0</span>
+            </div>
+            <span class="total-price" id="totalPrice">¥0</span>
+        </div>
+        <button class="order-btn" id="orderBtn">立即下单</button>
+    </div>
+
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-content">
+            <button class="close-cart" id="closeCart">&times;</button>
+            <h3 style="margin-bottom:15px;">🛒 已选菜品</h3>
+            <div id="cartItems"></div>
+            <div style="text-align:right; margin:15px 0; font-size:20px;">
+                合计：<span style="color:#ff6348; font-weight:bold;" id="cartTotal">¥0</span>
+            </div>
+            <button class="order-btn" style="width:100%;" id="confirmOrder">确认下单 💌</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 🔔 微信通知设置（已配置你的SendKey） ====================
+        const NOTIFY_URL = 'https://sctapi.ftqq.com/SCT366469Tma4jjwBAqmH5AD3E1kR0cZdq.send';
+
+        // ==================== 菜品库（222道） ====================
+        const dishes = [
+            // 川菜 8
+            { id:1, name:'宫保鸡丁', price:32, emoji:'🍗🌶️', category:'川菜' },
+            { id:2, name:'麻婆豆腐', price:22, emoji:'🧈🌶️', category:'川菜' },
+            { id:3, name:'水煮牛肉', price:48, emoji:'🥩🔥', category:'川菜' },
+            { id:4, name:'回锅肉', price:36, emoji:'🥓🔄', category:'川菜' },
+            { id:5, name:'鱼香肉丝', price:30, emoji:'🐟🥕', category:'川菜' },
+            { id:6, name:'辣子鸡', price:42, emoji:'🐔🌶️', category:'川菜' },
+            { id:7, name:'夫妻肺片', price:35, emoji:'❤️🐮', category:'川菜' },
+            { id:8, name:'担担面', price:16, emoji:'🍜🥜', category:'川菜' },
+            // 粤菜 8
+            { id:9, name:'虾饺', price:28, emoji:'🥟🍤', category:'粤菜' },
+            { id:10, name:'白切鸡', price:38, emoji:'🐔🔪', category:'粤菜' },
+            { id:11, name:'干炒牛河', price:35, emoji:'🍜🐮', category:'粤菜' },
+            { id:12, name:'叉烧', price:42, emoji:'🥓🔥', category:'粤菜' },
+            { id:13, name:'煲仔饭', price:45, emoji:'🍚🍲', category:'粤菜' },
+            { id:14, name:'烧鹅', price:58, emoji:'🦆🔥', category:'粤菜' },
+            { id:15, name:'肠粉', price:18, emoji:'🫔', category:'粤菜' },
+            { id:16, name:'白灼菜心', price:22, emoji:'🥬💧', category:'粤菜' },
+            // 苏菜 7
+            { id:17, name:'清炖蟹粉狮子头', price:55, emoji:'🦀🥄', category:'苏菜' },
+            { id:18, name:'大煮干丝', price:28, emoji:'🧈🥢', category:'苏菜' },
+            { id:19, name:'松鼠鳜鱼', price:68, emoji:'🐟🐿️', category:'苏菜' },
+            { id:20, name:'水晶肴肉', price:38, emoji:'🥩✨', category:'苏菜' },
+            { id:21, name:'扬州炒饭', price:25, emoji:'🍚🍤', category:'苏菜' },
+            { id:22, name:'盐水鸭', price:42, emoji:'🦆🧂', category:'苏菜' },
+            { id:23, name:'无锡排骨', price:52, emoji:'🍖', category:'苏菜' },
+            // 浙菜 7
+            { id:24, name:'东坡肉', price:48, emoji:'🥩📜', category:'浙菜' },
+            { id:25, name:'西湖醋鱼', price:58, emoji:'🐟🏞️', category:'浙菜' },
+            { id:26, name:'龙井虾仁', price:62, emoji:'🍤🍵', category:'浙菜' },
+            { id:27, name:'干炸响铃', price:26, emoji:'🔔🧀', category:'浙菜' },
+            { id:28, name:'叫花鸡', price:55, emoji:'🐔🍂', category:'浙菜' },
+            { id:29, name:'糖醋排骨', price:45, emoji:'🍖🍬', category:'浙菜' },
+            { id:30, name:'片儿川', price:18, emoji:'🍜🥬', category:'浙菜' },
+            // 闽菜 6
+            { id:31, name:'荔枝肉', price:38, emoji:'🍒🥩', category:'闽菜' },
+            { id:32, name:'海蛎煎', price:28, emoji:'🦪🍳', category:'闽菜' },
+            { id:33, name:'沙茶面', price:22, emoji:'🍜🥜', category:'闽菜' },
+            { id:34, name:'鱼丸汤', price:24, emoji:'🐟⚪', category:'闽菜' },
+            { id:35, name:'同安封肉', price:42, emoji:'🥩🎁', category:'闽菜' },
+            { id:36, name:'五香卷', price:18, emoji:'🥟', category:'闽菜' },
+            // 湘菜 7
+            { id:37, name:'剁椒鱼头', price:58, emoji:'🐟🌶️', category:'湘菜' },
+            { id:38, name:'小炒肉', price:30, emoji:'🥓🌶️', category:'湘菜' },
+            { id:39, name:'口味虾', price:68, emoji:'🦞🔥', category:'湘菜' },
+            { id:40, name:'湘西外婆菜', price:25, emoji:'👵🥬', category:'湘菜' },
+            { id:41, name:'辣椒炒肉', price:28, emoji:'🌶️🥩', category:'湘菜' },
+            { id:42, name:'腊味合蒸', price:48, emoji:'🥓🍚', category:'湘菜' },
+            { id:43, name:'永州血鸭', price:55, emoji:'🦆🩸', category:'湘菜' },
+            // 徽菜 7
+            { id:44, name:'臭鳜鱼', price:58, emoji:'🐟😋', category:'徽菜' },
+            { id:45, name:'毛豆腐', price:22, emoji:'🧈🌿', category:'徽菜' },
+            { id:46, name:'火腿炖甲鱼', price:78, emoji:'🐢🥓', category:'徽菜' },
+            { id:47, name:'李鸿章大杂烩', price:55, emoji:'🍲👲', category:'徽菜' },
+            { id:48, name:'符离集烧鸡', price:45, emoji:'🐔🔥', category:'徽菜' },
+            { id:49, name:'黄山毛峰鱼', price:48, emoji:'🐟🍵', category:'徽菜' },
+            { id:50, name:'徽州圆子', price:28, emoji:'🧆', category:'徽菜' },
+            // 鲁菜 7
+            { id:51, name:'糖醋鲤鱼', price:52, emoji:'🐟🍬', category:'鲁菜' },
+            { id:52, name:'九转大肠', price:45, emoji:'🌀🐷', category:'鲁菜' },
+            { id:53, name:'葱烧海参', price:88, emoji:'🧅🦪', category:'鲁菜' },
+            { id:54, name:'油爆双脆', price:56, emoji:'🥢💥', category:'鲁菜' },
+            { id:55, name:'糖醋里脊', price:38, emoji:'🍖🍬', category:'鲁菜' },
+            { id:56, name:'四喜丸子', price:42, emoji:'🧆🎉', category:'鲁菜' },
+            { id:57, name:'山东煎饼', price:15, emoji:'🫓', category:'鲁菜' },
+            // 地方特色 15
+            { id:58, name:'贵州炸洋芋', price:12, emoji:'🥔✨', category:'地方特色' },
+            { id:59, name:'凯里酸汤鱼', price:48, emoji:'🐟🍅', category:'地方特色' },
+            { id:60, name:'丝娃娃', price:28, emoji:'🫓🥬', category:'地方特色' },
+            { id:61, name:'云南汽锅鸡', price:55, emoji:'🐔💨', category:'地方特色' },
+            { id:62, name:'过桥米线', price:30, emoji:'🍜🌉', category:'地方特色' },
+            { id:63, name:'宣威火腿', price:42, emoji:'🥓🐷', category:'地方特色' },
+            { id:64, name:'陕西肉夹馍', price:15, emoji:'🥙', category:'地方特色' },
+            { id:65, name:'新疆大盘鸡', price:52, emoji:'🐔🥔', category:'地方特色' },
+            { id:66, name:'东北锅包肉', price:38, emoji:'🥩🍊', category:'地方特色' },
+            { id:67, name:'天津煎饼果子', price:12, emoji:'🫓🥚', category:'地方特色' },
+            { id:68, name:'四川冒菜', price:35, emoji:'🥘🌶️', category:'地方特色' },
+            { id:69, name:'武汉热干面', price:15, emoji:'🍜🥜', category:'地方特色' },
+            { id:70, name:'长沙臭豆腐', price:10, emoji:'🧈😋', category:'地方特色' },
+            { id:71, name:'西安凉皮', price:12, emoji:'🍝🧊', category:'地方特色' },
+            { id:72, name:'重庆小面', price:16, emoji:'🍜🌶️', category:'地方特色' },
+            // 热门菜 50
+            { id:73, name:'酸菜鱼', price:58, emoji:'🐟🥬', category:'热门菜' },
+            { id:74, name:'小龙虾', price:78, emoji:'🦞🔥', category:'热门菜' },
+            { id:75, name:'黄焖鸡', price:32, emoji:'🐔🍚', category:'热门菜' },
+            { id:76, name:'螺蛳粉', price:18, emoji:'🍜🐌', category:'热门菜' },
+            { id:77, name:'麻辣香锅', price:68, emoji:'🥘🌶️', category:'热门菜' },
+            { id:78, name:'脆皮五花肉', price:35, emoji:'🥓✨', category:'热门菜' },
+            { id:79, name:'麻辣烫', price:25, emoji:'🥘🌶️', category:'热门菜' },
+            { id:80, name:'烤鱼', price:68, emoji:'🐟🔥', category:'热门菜' },
+            { id:81, name:'炸鸡全家桶', price:58, emoji:'🍗🪣', category:'热门菜' },
+            { id:82, name:'芝士排骨', price:78, emoji:'🧀🍖', category:'热门菜' },
+            { id:83, name:'部队火锅', price:65, emoji:'🥘🧀', category:'热门菜' },
+            { id:84, name:'番茄牛腩', price:45, emoji:'🍅🥩', category:'热门菜' },
+            { id:85, name:'水煮鱼', price:62, emoji:'🐟🌶️', category:'热门菜' },
+            { id:86, name:'干锅牛蛙', price:58, emoji:'🐸🔥', category:'热门菜' },
+            { id:87, name:'披萨', price:48, emoji:'🍕', category:'热门菜' },
+            { id:88, name:'寿司拼盘', price:68, emoji:'🍣🍱', category:'热门菜' },
+            { id:89, name:'拉面', price:28, emoji:'🍜', category:'热门菜' },
+            { id:90, name:'烤冷面', price:12, emoji:'🫓🔥', category:'热门菜' },
+            { id:91, name:'煎饼果子', price:10, emoji:'🫓🥚', category:'热门菜' },
+            { id:92, name:'肉夹馍', price:12, emoji:'🥙', category:'热门菜' },
+            { id:93, name:'奶茶火锅', price:88, emoji:'🧋🥘', category:'热门菜' },
+            { id:94, name:'提拉米苏', price:32, emoji:'🍰', category:'热门菜' },
+            { id:95, name:'串串香', price:68, emoji:'🍢🔥', category:'热门菜' },
+            { id:96, name:'牛杂', price:38, emoji:'🐮🍲', category:'热门菜' },
+            { id:97, name:'烤全羊', price:198, emoji:'🐑🔥', category:'热门菜' },
+            { id:98, name:'椰子鸡', price:68, emoji:'🥥🐔', category:'热门菜' },
+            { id:99, name:'卜卜贝', price:42, emoji:'🦪💥', category:'热门菜' },
+            { id:100, name:'花胶鸡', price:88, emoji:'🐔✨', category:'热门菜' },
+            { id:101, name:'鳗鱼饭', price:58, emoji:'🐟🍚', category:'热门菜' },
+            { id:102, name:'炸鸡啤酒套餐', price:78, emoji:'🍗🍺', category:'热门菜' },
+            { id:103, name:'生腌虾', price:65, emoji:'🦐🧊', category:'热门菜' },
+            { id:104, name:'芋泥波波奶茶', price:22, emoji:'🍠🧋', category:'热门菜' },
+            { id:105, name:'暴打柠檬茶', price:16, emoji:'🍋🥊', category:'热门菜' },
+            { id:106, name:'杨枝甘露', price:24, emoji:'🥭🥥', category:'热门菜' },
+            { id:107, name:'芝士葡萄', price:26, emoji:'🍇🧀', category:'热门菜' },
+            { id:108, name:'黑糖珍珠奶茶', price:20, emoji:'🫘🧋', category:'热门菜' },
+            { id:109, name:'草莓蛋糕', price:35, emoji:'🍓🎂', category:'热门菜' },
+            { id:110, name:'马卡龙', price:28, emoji:'🌸🍪', category:'热门菜' },
+            { id:111, name:'雪媚娘', price:18, emoji:'🍡❄️', category:'热门菜' },
+            { id:112, name:'蛋黄酥', price:16, emoji:'🥮', category:'热门菜' },
+            { id:113, name:'脏脏包', price:18, emoji:'🍫🥐', category:'热门菜' },
+            { id:114, name:'肉松小贝', price:22, emoji:'🐷🧁', category:'热门菜' },
+            { id:115, name:'仙豆糕', price:15, emoji:'🫘', category:'热门菜' },
+            { id:116, name:'脆皮年糕', price:10, emoji:'🍡🔥', category:'热门菜' },
+            { id:117, name:'炸鲜奶', price:16, emoji:'🥛🔥', category:'热门菜' },
+            { id:118, name:'烤苕皮', price:12, emoji:'🫓🌶️', category:'热门菜' },
+            { id:119, name:'烤面筋', price:10, emoji:'🌀', category:'热门菜' },
+            { id:120, name:'狼牙土豆', price:12, emoji:'🥔🐺', category:'热门菜' },
+            { id:121, name:'铁板鱿鱼', price:25, emoji:'🦑🔥', category:'热门菜' },
+            { id:122, name:'章鱼小丸子', price:18, emoji:'🐙🧆', category:'热门菜' },
+            // 儿童菜 50
+            { id:123, name:'番茄炒蛋', price:16, emoji:'🍅🥚', category:'儿童菜' },
+            { id:124, name:'炸鸡块', price:18, emoji:'🍗', category:'儿童菜' },
+            { id:125, name:'笑脸薯饼', price:15, emoji:'🥔😊', category:'儿童菜' },
+            { id:126, name:'卡通饭团', price:12, emoji:'🍙🐼', category:'儿童菜' },
+            { id:127, name:'焦糖布丁', price:10, emoji:'🍮', category:'儿童菜' },
+            { id:128, name:'芝士玉米', price:16, emoji:'🧀🌽', category:'儿童菜' },
+            { id:129, name:'可乐鸡翅', price:28, emoji:'🥤🍗', category:'儿童菜' },
+            { id:130, name:'蛋包饭', price:22, emoji:'🍳🍚', category:'儿童菜' },
+            { id:131, name:'卡通饼干', price:15, emoji:'🍪🐻', category:'儿童菜' },
+            { id:132, name:'薯条', price:12, emoji:'🍟', category:'儿童菜' },
+            { id:133, name:'炸牛奶', price:18, emoji:'🥛🔥', category:'儿童菜' },
+            { id:134, name:'水果沙拉', price:20, emoji:'🍓🥝', category:'儿童菜' },
+            { id:135, name:'草莓冰淇淋', price:15, emoji:'🍦🍓', category:'儿童菜' },
+            { id:136, name:'巧克力蛋糕', price:22, emoji:'🍫🎂', category:'儿童菜' },
+            { id:137, name:'华夫饼', price:18, emoji:'🧇', category:'儿童菜' },
+            { id:138, name:'土豆泥', price:12, emoji:'🥔', category:'儿童菜' },
+            { id:139, name:'玉米浓汤', price:16, emoji:'🌽🥣', category:'儿童菜' },
+            { id:140, name:'南瓜饼', price:14, emoji:'🎃🥞', category:'儿童菜' },
+            { id:141, name:'虾仁滑蛋', price:28, emoji:'🍤🥚', category:'儿童菜' },
+            { id:142, name:'糖醋里脊', price:32, emoji:'🍖🍬', category:'儿童菜' },
+            { id:143, name:'松仁玉米', price:22, emoji:'🌰🌽', category:'儿童菜' },
+            { id:144, name:'蓝莓山药', price:24, emoji:'🫐🥔', category:'儿童菜' },
+            { id:145, name:'意式肉酱面', price:28, emoji:'🍝🥩', category:'儿童菜' },
+            { id:146, name:'迷你汉堡', price:25, emoji:'🍔', category:'儿童菜' },
+            { id:147, name:'鸡肉卷', price:22, emoji:'🌯🐔', category:'儿童菜' },
+            { id:148, name:'春卷', price:16, emoji:'🥟', category:'儿童菜' },
+            { id:149, name:'炸虾天妇罗', price:32, emoji:'🍤', category:'儿童菜' },
+            { id:150, name:'奶油蘑菇汤', price:22, emoji:'🍄🥣', category:'儿童菜' },
+            { id:151, name:'水果捞', price:25, emoji:'🥭🍉', category:'儿童菜' },
+            { id:152, name:'双皮奶', price:15, emoji:'🥛', category:'儿童菜' },
+            { id:153, name:'酸奶杯', price:12, emoji:'🥛🍓', category:'儿童菜' },
+            { id:154, name:'芒果班戟', price:18, emoji:'🥭🥞', category:'儿童菜' },
+            { id:155, name:'椰奶小方', price:14, emoji:'🥥🍮', category:'儿童菜' },
+            { id:156, name:'蛋挞', price:12, emoji:'🥧', category:'儿童菜' },
+            { id:157, name:'烤鸡翅', price:18, emoji:'🍗🔥', category:'儿童菜' },
+            { id:158, name:'爆米花', price:10, emoji:'🍿', category:'儿童菜' },
+            { id:159, name:'甜甜圈', price:14, emoji:'🍩', category:'儿童菜' },
+            { id:160, name:'棉花糖', price:8, emoji:'☁️🍬', category:'儿童菜' },
+            { id:161, name:'糖葫芦', price:12, emoji:'🍡', category:'儿童菜' },
+            { id:162, name:'鸡蛋仔', price:15, emoji:'🧇🥚', category:'儿童菜' },
+            { id:163, name:'章鱼小丸子', price:16, emoji:'🐙', category:'儿童菜' },
+            { id:164, name:'骨肉相连', price:14, emoji:'🍖', category:'儿童菜' },
+            { id:165, name:'玉米肠', price:8, emoji:'🌭', category:'儿童菜' },
+            { id:166, name:'奶香小馒头', price:10, emoji:'🍞🥛', category:'儿童菜' },
+            { id:167, name:'蔬菜沙拉', price:18, emoji:'🥗', category:'儿童菜' },
+            { id:168, name:'土豆笑脸饼', price:13, emoji:'🥔😊', category:'儿童菜' },
+            { id:169, name:'小熊三明治', price:20, emoji:'🥪🐻', category:'儿童菜' },
+            { id:170, name:'彩虹蛋糕', price:28, emoji:'🌈🎂', category:'儿童菜' },
+            { id:171, name:'芝士披萨球', price:22, emoji:'🍕🧀', category:'儿童菜' },
+            { id:172, name:'香蕉派', price:14, emoji:'🍌🥧', category:'儿童菜' },
+            // 空气炸锅 50
+            { id:173, name:'奥尔良烤鸡翅', price:28, emoji:'🍗🌶️', category:'空气炸锅' },
+            { id:174, name:'脆皮烤五花肉', price:42, emoji:'🥓✨', category:'空气炸锅' },
+            { id:175, name:'炸薯条', price:15, emoji:'🍟', category:'空气炸锅' },
+            { id:176, name:'烤蛋挞', price:18, emoji:'🥧', category:'空气炸锅' },
+            { id:177, name:'烤鸡米花', price:22, emoji:'🐔🍿', category:'空气炸锅' },
+            { id:178, name:'烤红薯', price:10, emoji:'🍠', category:'空气炸锅' },
+            { id:179, name:'烤羊排', price:48, emoji:'🐑🍖', category:'空气炸锅' },
+            { id:180, name:'烤豆腐', price:12, emoji:'🧈', category:'空气炸锅' },
+            { id:181, name:'烤蘑菇', price:14, emoji:'🍄', category:'空气炸锅' },
+            { id:182, name:'烤肠', price:10, emoji:'🌭', category:'空气炸锅' },
+            { id:183, name:'烤玉米', price:10, emoji:'🌽', category:'空气炸锅' },
+            { id:184, name:'烤韭菜', price:8, emoji:'🥬', category:'空气炸锅' },
+            { id:185, name:'烤虾', price:32, emoji:'🦐', category:'空气炸锅' },
+            { id:186, name:'烤鱼', price:38, emoji:'🐟🔥', category:'空气炸锅' },
+            { id:187, name:'烤蔬菜串', price:18, emoji:'🍢🥬', category:'空气炸锅' },
+            { id:188, name:'烤吐司', price:8, emoji:'🍞', category:'空气炸锅' },
+            { id:189, name:'烤饺子', price:16, emoji:'🥟🔥', category:'空气炸锅' },
+            { id:190, name:'烤包子', price:14, emoji:'🥟🔥', category:'空气炸锅' },
+            { id:191, name:'烤年糕', price:10, emoji:'🍡', category:'空气炸锅' },
+            { id:192, name:'烤馒头片', price:6, emoji:'🍞', category:'空气炸锅' },
+            { id:193, name:'烤花菜', price:12, emoji:'🥦', category:'空气炸锅' },
+            { id:194, name:'烤西葫芦', price:10, emoji:'🥒', category:'空气炸锅' },
+            { id:195, name:'烤南瓜', price:12, emoji:'🎃', category:'空气炸锅' },
+            { id:196, name:'烤丸子', price:16, emoji:'🧆', category:'空气炸锅' },
+            { id:197, name:'烤牛排', price:48, emoji:'🥩', category:'空气炸锅' },
+            { id:198, name:'烤三文鱼', price:58, emoji:'🐟', category:'空气炸锅' },
+            { id:199, name:'烤鱿鱼', price:28, emoji:'🦑', category:'空气炸锅' },
+            { id:200, name:'烤鸡蛋', price:8, emoji:'🥚', category:'空气炸锅' },
+            { id:201, name:'烤燕麦', price:12, emoji:'🥣', category:'空气炸锅' },
+            { id:202, name:'烤苹果片', price:10, emoji:'🍎', category:'空气炸锅' },
+            { id:203, name:'烤香蕉', price:8, emoji:'🍌', category:'空气炸锅' },
+            { id:204, name:'烤菠萝', price:12, emoji:'🍍', category:'空气炸锅' },
+            { id:205, name:'烤梨', price:10, emoji:'🍐', category:'空气炸锅' },
+            { id:206, name:'烤金针菇', price:10, emoji:'🍄', category:'空气炸锅' },
+            { id:207, name:'烤茄子', price:12, emoji:'🍆', category:'空气炸锅' },
+            { id:208, name:'烤土豆片', price:8, emoji:'🥔', category:'空气炸锅' },
+            { id:209, name:'炸春卷', price:14, emoji:'🥟', category:'空气炸锅' },
+            { id:210, name:'炸鸡排', price:18, emoji:'🐔', category:'空气炸锅' },
+            { id:211, name:'炸鱼排', price:18, emoji:'🐟', category:'空气炸锅' },
+            { id:212, name:'烤培根卷', price:22, emoji:'🥓', category:'空气炸锅' },
+            { id:213, name:'烤芝士通心粉', price:24, emoji:'🧀', category:'空气炸锅' },
+            { id:214, name:'烤茄子卷', price:16, emoji:'🍆🌀', category:'空气炸锅' },
+            { id:215, name:'烤洋葱圈', price:12, emoji:'🧅', category:'空气炸锅' },
+            { id:216, name:'烤口蘑', price:16, emoji:'🍄', category:'空气炸锅' },
+            { id:217, name:'炸鸡腿', price:20, emoji:'🍗', category:'空气炸锅' },
+            { id:218, name:'烤牛肉串', price:28, emoji:'🥩🍢', category:'空气炸锅' },
+            { id:219, name:'烤面筋', price:10, emoji:'🌀', category:'空气炸锅' },
+            { id:220, name:'烤玉米烙', price:14, emoji:'🌽🥞', category:'空气炸锅' },
+            { id:221, name:'烤红薯条', price:12, emoji:'🍠🍟', category:'空气炸锅' },
+            { id:222, name:'烤豆皮', price:8, emoji:'🫘', category:'空气炸锅' }
+        ];
+
+        // ==================== 购物车状态 ====================
+        let cart = {};
+        let currentCategory = '全部';
+        let searchTerm = '';
+
+        const tabsEl = document.getElementById('tabs');
+        const menuGrid = document.getElementById('menuGrid');
+        const cartCountEl = document.getElementById('cartCount');
+        const totalPriceEl = document.getElementById('totalPrice');
+        const cartModal = document.getElementById('cartModal');
+        const cartItemsEl = document.getElementById('cartItems');
+        const cartTotalEl = document.getElementById('cartTotal');
+        const searchInput = document.getElementById('searchInput');
+
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value.trim().toLowerCase();
+            renderMenu();
+        });
+
+        function renderTabs() {
+            const categories = [...new Set(dishes.map(d => d.category))];
+            const tabs = ['全部', ...categories];
+            tabsEl.innerHTML = tabs.map(cat =>
+                `<button class="tab ${cat === currentCategory ? 'active' : ''}" data-cat="${cat}">${cat}</button>`
+            ).join('');
+            tabsEl.querySelectorAll('.tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentCategory = btn.dataset.cat;
+                    renderTabs();
+                    renderMenu();
+                });
+            });
+        }
+
+        function renderMenu() {
+            let filtered = currentCategory === '全部'
+                ? dishes
+                : dishes.filter(d => d.category === currentCategory);
+
+            if (searchTerm) {
+                filtered = filtered.filter(d => d.name.toLowerCase().includes(searchTerm));
+            }
+
+            menuGrid.innerHTML = filtered.length === 0
+                ? `<div style="width:100%; text-align:center; padding:40px; color:#aaa;">😋 没有找到相关菜品，换个关键词试试吧～</div>`
+                : filtered.map(dish => `
+                    <div class="dish-card" data-id="${dish.id}">
+                        <div class="dish-img">${dish.emoji}</div>
+                        <div class="dish-info">
+                            <div class="dish-name">${dish.name}</div>
+                            <div class="dish-desc">${dish.category}</div>
+                            <div class="dish-bottom">
+                                <span class="dish-price">¥${dish.price}</span>
+                                <button class="add-btn" data-id="${dish.id}">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            menuGrid.querySelectorAll('.add-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addToCart(parseInt(btn.dataset.id));
+                });
+            });
+            menuGrid.querySelectorAll('.dish-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    addToCart(parseInt(card.dataset.id));
+                });
+            });
+        }
+
+        function addToCart(id) {
+            cart[id] = (cart[id] || 0) + 1;
+            updateCartUI();
+            const btn = document.querySelector(`.add-btn[data-id="${id}"]`);
+            if (btn) {
+                btn.style.transform = 'scale(1.3)';
+                setTimeout(() => { btn.style.transform = ''; }, 200);
+            }
+        }
+
+        function removeFromCart(id) {
+            if (cart[id] && cart[id] > 1) {
+                cart[id]--;
+            } else {
+                delete cart[id];
+            }
+            updateCartUI();
+            if (cartModal.classList.contains('active')) renderCartItems();
+        }
+
+        function clearCart() {
+            cart = {};
+            updateCartUI();
+            if (cartModal.classList.contains('active')) renderCartItems();
+        }
+
+        function getCartTotal() {
+            let total = 0, count = 0;
+            for (let id in cart) {
+                const dish = dishes.find(d => d.id === parseInt(id));
+                if (dish) { total += dish.price * cart[id]; count += cart[id]; }
+            }
+            return { total, count };
+        }
+
+        function updateCartUI() {
+            const { total, count } = getCartTotal();
+            cartCountEl.textContent = count;
+            totalPriceEl.textContent = `¥${total}`;
+        }
+
+        function renderCartItems() {
+            const ids = Object.keys(cart);
+            if (ids.length === 0) {
+                cartItemsEl.innerHTML = '<div class="empty-cart">🛒 购物车还是空的，去点菜吧～</div>';
+                cartTotalEl.textContent = '¥0';
+                return;
+            }
+            cartItemsEl.innerHTML = ids.map(id => {
+                const dish = dishes.find(d => d.id === parseInt(id));
+                const qty = cart[id];
+                return `<div class="cart-item">
+                    <span>${dish.emoji} ${dish.name}</span>
+                    <div class="qty-control">
+                        <button class="qty-btn" data-id="${id}" data-action="minus">−</button>
+                        <span>${qty}</span>
+                        <button class="qty-btn" data-id="${id}" data-action="plus">+</button>
+                    </div>
+                    <span style="color:#ff6348;">¥${dish.price * qty}</span>
+                </div>`;
+            }).join('');
+            cartTotalEl.textContent = `¥${getCartTotal().total}`;
+
+            cartItemsEl.querySelectorAll('.qty-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = parseInt(btn.dataset.id);
+                    btn.dataset.action === 'plus' ? addToCart(id) : removeFromCart(id);
+                    renderCartItems();
+                });
+            });
+        }
+
+        document.getElementById('cartIcon').addEventListener('click', () => {
+            cartModal.classList.add('active');
+            renderCartItems();
+        });
+        document.getElementById('closeCart').addEventListener('click', () => {
+            cartModal.classList.remove('active');
+        });
+        cartModal.addEventListener('click', (e) => {
+            if (e.target === cartModal) cartModal.classList.remove('active');
+        });
+
+        document.getElementById('orderBtn').addEventListener('click', () => {
+            if (getCartTotal().count === 0) {
+                alert('还没有点菜哦～快去选吧 ❤️');
+                return;
+            }
+            cartModal.classList.add('active');
+            renderCartItems();
+        });
+
+        // ==================== 下单并发送微信通知 ====================
+        document.getElementById('confirmOrder').addEventListener('click', () => {
+            const { total, count } = getCartTotal();
+            if (count === 0) return;
+
+            let details = '';
+            for (let id in cart) {
+                const dish = dishes.find(d => d.id === parseInt(id));
+                if (dish) {
+                    details += `${dish.emoji} ${dish.name} x${cart[id]}  ¥${dish.price * cart[id]}\n`;
+                }
+            }
+            const message = `💌 小宝的新订单\n${details}\n共 ${count} 道菜，合计 ¥${total}`;
+
+            alert(`订单已生成！\n共 ${count} 道菜，合计 ¥${total}\n宝贝稍等，马上给你做～`);
+
+            // 微信通知
+            fetch(NOTIFY_URL + '?title=' + encodeURIComponent('小宝点餐新订单') + '&desp=' + encodeURIComponent(message))
+                .then(res => res.json())
+                .then(data => console.log('微信通知发送成功', data))
+                .catch(err => console.log('微信通知发送失败，但订单仍然有效', err));
+
+            clearCart();
+            cartModal.classList.remove('active');
+        });
+
+        // 启动
+        renderTabs();
+        renderMenu();
+        updateCartUI();
+    </script>
+</body>
+</html>
